@@ -143,8 +143,8 @@ class READER:
                               periods, instance_number):
 
         try:
-            path = "../Instances/"+demand+"/"+gen_protocole+"/"+set_+"/P_"+periods+"_CH_"+channels+"/"
-            instance_path = path + "Instance_"+instance_number+"_" + demand+"_"+periods+"_"+channels +".LDT"
+            path = f'../Instances/{demand}/{gen_protocole}/{set_}/P_{periods}_CH_{channels}/'
+            instance_path = f'{path}Instance_{str(instance_number)}_{demand}_{periods}_{channels}.LDT'
             
             f = open(instance_path,"r")
         

@@ -5,6 +5,7 @@ from pyomo.environ import *
 import  instances_reader
 from instances_reader import *
 import itertools
+import time
 
 """
     Sets methods
@@ -13,6 +14,7 @@ import itertools
 def channels_periods_set_init(model):
     
     return [(channel, period) for channel in channels for period in periods]
+
 
 def channels_set_init(model,channel):
     
@@ -56,6 +58,17 @@ def initialize_capacity_per_period(model, period):
 def initialize_capacity_used_per_period(model, period):
     return capacity_used[period - 1]
 
+
+def logistic_params_initialization(model):
+    
+    model.capacity_used = Param(model.P, initialize = initialize_capacity_used_per_period, within = PositiveReals)
+    model.capacities = Param(model.P, initialize = initialize_capacity_per_period, within = PositiveReals)
+    model.Prod_cost = Param(model.P, initialize = initialize_production_costs, within = PositiveReals)
+    model.Hold_cost = Param(list(model.P)[:-1], initialize = initialize_holding_costs, within = PositiveReals)
+    model.Setup_cost = Param(model.P, initialize = initialize_setup_costs, within = PositiveReals)
+    
+    return 
+
 """
    Markets params initialization
 """
@@ -84,25 +97,14 @@ def initialize_ubs(model, channel, period):
     return UB[(channel,period)]
 
 
-def logistic_params_initialization(model):
-    
-    model.capacity_used = Param(model.P, initialize = initialize_capacity_used_per_period)
-    model.capacities = Param(model.P, initialize = initialize_capacity_per_period)
-    model.Prod_cost = Param(model.P, initialize = initialize_production_costs)
-    model.Hold_cost = Param(list(model.P)[:-1], initialize = initialize_holding_costs)
-    model.Setup_cost = Param(model.P, initialize = initialize_setup_costs)
-    
-    return 
-
-
 def market_data_initialization(model):
     
-    model.min_presence = Param(channels, initialize = initialize_minimum_markets_presence)
-    model.Mars_len = Param(model.P, initialize = initialize_markets_length)
-    model.A = Param(model.CHP, initialize = initialize_demand_params_a)
-    model.B = Param(model.CHP, initialize = initialize_demand_params_b)
-    model.LB = Param(model.CHP, initialize = initialize_lbs)
-    model.UB = Param(model.CHP, initialize = initialize_ubs)
+    model.min_presence = Param(channels, initialize = initialize_minimum_markets_presence, within = PositiveReals)
+    model.Mars_len = Param(model.P, initialize = initialize_markets_length, within = PositiveReals)
+    model.A = Param(model.CHP, initialize = initialize_demand_params_a, within = PositiveReals)
+    model.B = Param(model.CHP, initialize = initialize_demand_params_b, within = NegativeReals)
+    model.LB = Param(model.CHP, initialize = initialize_lbs, within = PositiveReals)
+    model.UB = Param(model.CHP, initialize = initialize_ubs, within = PositiveReals)
     
     return 
 
@@ -120,15 +122,19 @@ def initialize_theta_mt(model, channel, period):
 def X_bounds(model, period):
     return 0, capacities[period - 1]/capacity_used[period - 1]
 
+def initialize_y(model,period):
+    if period == 1:
+        return 0
+    else:
+        return 0
 
 def decision_variables_creation(model):
-
     
     model.theta_mt = Var(model.CHP, within = PositiveReals, bounds = (None,1), initialize = initialize_theta_mt)
-    model.theta_o = Var(model.P, within = PositiveReals, bounds = (None,1), initialize = 0.25)
-    model.X = Var(model.P, within = NonNegativeReals, bounds = X_bounds, initialize = 0)
-    model.I = Var(list(model.P)[:-1], within = NonNegativeReals, initialize = 0)
-    model.Y = Var(model.P, within = Binary, initialize = 1)
+    model.theta_o = Var(model.P, within = PositiveReals, initialize = 0.25)
+    model.X = Var(model.P, within = NonNegativeReals, initialize = 0)
+    model.I = Var(list(model.P)[:-1], bounds=(0,100), within = NonNegativeReals, initialize = 0)
+    model.Y = Var(model.P, within = Binary)
     
     return 
 
@@ -152,8 +158,8 @@ def compute_objective_function(model):
     model.total_costs = Expression(expr = summation(model.Prod_cost,model.X) \
     + summation(model.Hold_cost,model.I) + summation(model.Setup_cost,model.Y))
     
-    model.obj = Objective(expr = model.profit - model.total_costs, sense = maximize)
-    
+    model.obj = Objective(expr = model.profit.expr - model.total_costs.expr, sense = maximize)
+
     return 
 
 """
@@ -198,7 +204,7 @@ def add_logistics_constraints(model):
     #1: Production capacity limits
     model.production_limits = Constraint(model.P, rule = production_limit_constraint) 
     
-    #2: Inventory at the end of the first period
+    #2: Inventory for the first period
     model.inventory_first_period = Constraint(rule = model.Mars_len[1]*sum(ms.theta_mt[m,1] \
     for m in model.CH) + model.I[1] - model.X[1] == 0)
     
@@ -244,10 +250,11 @@ def add_theta_bounds_right_side(model):
 """
 
 def solver_market_share_single_product(T_, periods_, M_, channels_, 
-                                      capacities_, capacity_used_, 
-                                      production_costs_, holding_costs_, 
-                                      setup_costs_, big_M_, \
-                                      markets_length_, min_presence_,
+                                      set_, demand_, instance_number_,
+                                      gen_protocole_, capacities_, 
+                                      capacity_used_, production_costs_, 
+                                      holding_costs_, setup_costs_, 
+                                      big_M_, markets_length_, min_presence_,
                                       A_, B_, LB_, UB_):
     
     #1: Initialize the instance data 
@@ -260,7 +267,8 @@ def solver_market_share_single_product(T_, periods_, M_, channels_,
     setup_costs, big_M = setup_costs_, big_M_
     markets_length, min_presence = markets_length_, min_presence_
     A, B, LB, UB = A_, B_, LB_, UB_
-
+    
+    start = time.time()
     #2: Create the model
     ms = ConcreteModel()
 
@@ -270,15 +278,28 @@ def solver_market_share_single_product(T_, periods_, M_, channels_,
     market_data_initialization(ms)
     decision_variables_creation(ms)
     compute_objective_function(ms)
-    add_business_constraints(ms)
     add_logistics_constraints(ms)
+    add_business_constraints(ms)
     add_theta_bounds_left_side(ms)
     add_theta_bounds_right_side(ms)
 
+
     #4: Sovle the model
-    SolverFactory('mindtpy').solve(ms, mip_solver='glpk', nlp_solver='ipopt', tee = True) 
+    try:
+        resolution_log = sys.stdout 
+        log_file = f'../Results/{demand_}/{gen_protocole_}/{set_}/P_{len(periods_)}_CH_{len(channels_)}/Instance_{instance_number_}_{demand_}_{len(periods_)}_{len(channels_)}'
+        sys.stdout = open(f'{log_file}_log_file', "w")
+        SolverFactory('mindtpy').solve(ms, mip_solver='glpk', 
+                                       nlp_solver='ipopt', tee = True
+                                       )
+        sys.stdout.close()
+        sys.stdout = resolution_log
+       
+    except:
+        print("Instance infeasible !")
     
-    return ms
+    end = time.time()
+    return ms, end - start
 
 """
   Save the model and the results
@@ -288,18 +309,23 @@ def save_ms_model_and_results(ms_model, demand, gen_protocole,
                               set_, periods, channels, 
                               instance_number):
     
-    path = f'../Results/{demand}/{gen_protocole}/{set_}/P_{periods}_CH_{channels}/Instance_{instance_number}_{demand}_{periods}_{channels}' #1_MNL_6_2
-    #1: Save the model
-    ms_model_file = open(path+"_model","w")
-    sys.stdout = ms_model_file
-    ms_model.pprint()
-    ms_model_file.close()
+    path = f'../Results/{demand}/{gen_protocole}/{set_}/P_{periods}_CH_{channels}/Instance_{instance_number}_{demand}_{periods}_{channels}'
 
-    #2: Save the resutls 
-    ms_model_results_file = open(path+"_results","w")
-    sys.stdout = ms_model_results_file
-    ms_model.display()
-    ms_model_results_file.close()
+    try:
+        #1: Save the model
+        ms_model_file = open(f'{path}_model',"w")
+        sys.stdout = ms_model_file
+        ms_model.pprint()
+        ms_model_file.close()
+    
+        #2: Save the resutls 
+        ms_model_results_file = open(f'{path}_results',"w")
+        sys.stdout = ms_model_results_file
+        ms_model.display()
+        ms_model_results_file.close()
+
+    except TypeError:
+        print("Error when writing the model for the instance:") 
 
     return 
 
