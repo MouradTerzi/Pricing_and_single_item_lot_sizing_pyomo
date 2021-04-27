@@ -1,5 +1,6 @@
 import sys 
 import shutil 
+import random
 
 class READER:
 
@@ -216,3 +217,26 @@ class READER:
         [print("LB[",channel,period,"] = ",LB[channel,period]) for channel in channels for period in periods]
         print("\nPrices upper bounds")
         [print("UB[",channel,period,"] = ",UB[channel,period]) for channel in channels for period in periods]
+        
+        return 
+    
+    
+    def initialize_theta_mt(self, min_presence):
+
+        min_presence = [float(min_presence[i]) for i in range(len(min_presence))]
+
+        if sum(min_presence) > 1:
+           print(f'Instance is infeasible because sum of the minimum presence {min_presence} are greater than one')
+        
+        else: 
+            #1: Generate uniformaly from [0.1, 0.4] the value of no-purchase option
+            theta_o_t = round(random.uniform(0.1, 0.4),2)
+            print(f'The value of the no-purchase option is {theta_o_t}')
+
+            #2: Compute the values of theta_mt_b and theta_mt_o 
+            theta_mt_b = (1 - min_presence[0])*(1 - theta_o_t)
+            theta_mt_o = min_presence[0]*(1 - theta_o_t)
+
+
+
+        

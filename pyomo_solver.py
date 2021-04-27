@@ -122,15 +122,10 @@ def initialize_theta_mt(model, channel, period):
 def X_bounds(model, period):
     return 0, capacities[period - 1]/capacity_used[period - 1]
 
-def initialize_y(model,period):
-    if period == 1:
-        return 0
-    else:
-        return 0
 
 def decision_variables_creation(model):
     
-    model.theta_mt = Var(model.CHP, within = PositiveReals, bounds = (None,1), initialize = initialize_theta_mt)
+    model.theta_mt = Var(model.CHP, within = PositiveReals, bounds = (None,1))
     model.theta_o = Var(model.P, within = PositiveReals, initialize = 0.25)
     model.X = Var(model.P, within = NonNegativeReals, initialize = 0)
     model.I = Var(list(model.P)[:-1], bounds=(0,100), within = NonNegativeReals, initialize = 0)
@@ -299,6 +294,7 @@ def solver_market_share_single_product(T_, periods_, M_, channels_,
         print("Instance infeasible !")
     
     end = time.time()
+    
     return ms, end - start
 
 """
