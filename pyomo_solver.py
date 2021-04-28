@@ -110,25 +110,21 @@ def market_data_initialization(model):
 
 """
    Variables creation
-"""
-
-def initialize_theta_mt(model, channel, period):
-    if channel == 'o':
-        return 0.45
-    else:
-        return 0.3
-    
+"""    
 
 def X_bounds(model, period):
     return 0, capacities[period - 1]/capacity_used[period - 1]
 
 
+def I_upper_bounds(model, period):
+    return (0,inventory_ubs[period - 1])
+
 def decision_variables_creation(model):
     
     model.theta_mt = Var(model.CHP, within = PositiveReals, bounds = (None,1))
-    model.theta_o = Var(model.P, within = PositiveReals, initialize = 0.25)
+    model.theta_o = Var(model.P, within = PositiveReals, bounds = (None,1), initialize = 0.25)
     model.X = Var(model.P, within = NonNegativeReals, initialize = 0)
-    model.I = Var(list(model.P)[:-1], bounds=(0,100), within = NonNegativeReals, initialize = 0)
+    model.I = Var(list(model.P)[:-1], bounds= I_upper_bounds, within = NonNegativeReals, initialize = 0)
     model.Y = Var(model.P, within = Binary)
     
     return 
@@ -244,24 +240,25 @@ def add_theta_bounds_right_side(model):
    Market share for single product model resolution
 """
 
-def solver_market_share_single_product(T_, periods_, M_, channels_, 
-                                      set_, demand_, instance_number_,
-                                      gen_protocole_, capacities_, 
+def solver_market_share_single_product(T_, periods_, M_, channels_, set_, 
+                                      demand_, demand_params_, set_number,
+                                      instance_number_, gen_protocole_, capacities_, 
                                       capacity_used_, production_costs_, 
                                       holding_costs_, setup_costs_, 
                                       big_M_, markets_length_, min_presence_,
-                                      A_, B_, LB_, UB_):
+                                      A_, B_, LB_, UB_, inventory_ubs_):
     
+    #print("Inventory upper bounds are:",inventory_ubs_)
     #1: Initialize the instance data 
     global ms, T, periods, M, channels, capacities, capacity_used \
-    ,production_costs, holding_costs, setup_costs, big_M, markets_length, min_presence, A, B, LB, UB
+    ,production_costs, holding_costs, setup_costs, big_M, markets_length, min_presence, A, B, LB, UB, inventory_ubs
     
     T, periods, M, channels = T_, periods_, M_, channels_
     capacities, capacity_used = capacities_, capacity_used_
     production_costs, holding_costs = production_costs_, holding_costs_
     setup_costs, big_M = setup_costs_, big_M_
     markets_length, min_presence = markets_length_, min_presence_
-    A, B, LB, UB = A_, B_, LB_, UB_
+    A, B, LB, UB, inventory_ubs = A_, B_, LB_, UB_, inventory_ubs_
     
     start = time.time()
     #2: Create the model
@@ -282,14 +279,16 @@ def solver_market_share_single_product(T_, periods_, M_, channels_,
     #4: Sovle the model
     try:
         resolution_log = sys.stdout 
-        log_file = f'../Results/{demand_}/{gen_protocole_}/{set_}/P_{len(periods_)}_CH_{len(channels_)}/Instance_{instance_number_}_{demand_}_{len(periods_)}_{len(channels_)}'
-        sys.stdout = open(f'{log_file}_log_file', "w")
+        log_file = f'../Results/{demand_}/{set_}/{gen_protocole_}_P_{len(periods_)}_CH_{len(channels_)}_set_{set_number}/{demand_params_}/' 
+        sys.stdout = open(f'{log_file}_Instance_{instance_number_}_{demand_}_{len(periods)}_{len(channels)}_log_file', "w")
+    
         SolverFactory('mindtpy').solve(ms, mip_solver='glpk', 
-                                       nlp_solver='ipopt', tee = True
-                                       )
+                                        nlp_solver='ipopt', tee = True
+                                        )
+        
         sys.stdout.close()
         sys.stdout = resolution_log
-       
+               
     except:
         print("Instance infeasible !")
     
@@ -301,11 +300,11 @@ def solver_market_share_single_product(T_, periods_, M_, channels_,
   Save the model and the results
 """
 
-def save_ms_model_and_results(ms_model, demand, gen_protocole,
-                              set_, periods, channels, 
-                              instance_number):
+def save_ms_model_and_results(ms_model, demand, set_, set_number, 
+                                demand_params, gen_protocole, periods, 
+                                channels, instance_number):
     
-    path = f'../Results/{demand}/{gen_protocole}/{set_}/P_{periods}_CH_{channels}/Instance_{instance_number}_{demand}_{periods}_{channels}'
+    path = f'../Results/{demand}/{set_}/{gen_protocole}_P_{periods}_CH_{channels}_set_{set_number}/{demand_params}/Instance_{instance_number}_{demand}_{periods}_{channels}'
 
     try:
         #1: Save the model

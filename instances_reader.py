@@ -1,6 +1,8 @@
 import sys 
+import os
 import shutil 
 import random
+import numpy as np 
 
 class READER:
 
@@ -115,8 +117,11 @@ class READER:
         setup_costs = [float(setup_costs[i]) for i in \
                         range(len(setup_costs)) if setup_costs[i] !='' and setup_costs[i] != '~']
         
-        big_M = sum(capacities)
-        return capacity_used, capacities, production_costs, holding_costs, setup_costs, big_M
+        inventory_ubs = np.array(capacities)[:-1]/np.array(capacity_used)[:-1]
+        inventory_ubs = list(np.cumsum(inventory_ubs))
+
+        big_M = np.sum(np.array(capacities)/np.array(capacity_used))
+        return capacity_used, capacities, production_costs, holding_costs, setup_costs, inventory_ubs, big_M
 
     
     def read_market_data_lingo_format(self, instance,
@@ -140,18 +145,18 @@ class READER:
     
     
     def read_instance_lingo_format(self, demand, gen_protocole,
-                              set_,channels,
-                              periods, instance_number):
+                              set_,set_number, channels,
+                              periods, demand_params, 
+                              instance_number):
 
         try:
-            path = f'../Instances/{demand}/{gen_protocole}/{set_}/P_{periods}_CH_{channels}/'
+            path = f'../Instances/{demand}/{set_}/{gen_protocole}_P_{periods}_CH_{channels}_set_{set_number}/{demand_params}/'
             instance_path = f'{path}Instance_{str(instance_number)}_{demand}_{periods}_{channels}.LDT'
-            
             f = open(instance_path,"r")
         
         except FileNotFoundError:
             print("Wrong file or file path")
-            return [-1]*16
+            return [-1]*17, "Instance not found"
         
         instance = f.read().split('\n')
         instance = [instance[i] for i in range(len(instance)) if instance[i] != ' ']
@@ -172,7 +177,7 @@ class READER:
         """  
         
         capacity_used, capacities, production_costs, \
-        holding_costs, setup_costs, big_M = self.read_logistics_data_lingo_format(instance)
+        holding_costs, setup_costs, inventory_ubs, big_M = self.read_logistics_data_lingo_format(instance)
         
         """
         Read markets data lingo format
@@ -182,7 +187,7 @@ class READER:
         LB, UB, A, B = self.read_market_data_lingo_format(instance, channels, periods, M)
         
         return T, periods, M, channels, capacities, capacity_used, production_costs, holding_costs, setup_costs, big_M, \
-        markets_length, min_presence, A, B, LB, UB
+        markets_length, min_presence, A, B, LB, UB, inventory_ubs," "
     
 
     def show_instance_data(self, T, periods, M, channels,
