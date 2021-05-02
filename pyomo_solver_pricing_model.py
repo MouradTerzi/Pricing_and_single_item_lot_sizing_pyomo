@@ -112,9 +112,14 @@ def market_data_initialization(model):
 """
    Variables creation
 """    
+def prices_bounds(model,channel,period):
+
+    return (model.LB[channel,period], model.UB[channel,period])
+
 
 def I_upper_bounds(model, period):
     return (0,inventory_ubs[period - 1])
+
 
 def decision_variables_creation(model):
     
@@ -126,6 +131,9 @@ def decision_variables_creation(model):
     
     return 
 
+"""
+    Objective function
+"""
 
 def compute_objective_function(model):
     
@@ -163,19 +171,60 @@ def add_logistics_constraints(model):
     model.production_limits = Constraint(model.P, rule = production_limit_constraint) 
     
     #2: Inventory for the first period
-    model.inventory_first_period = Constraint(rule = model.Mars_len[1]*sum(model.demand[m,1] \
+    model.inventory_first_period = Constraint(rule = sum(model.demand[m,1] \
     for m in model.CH) + model.I[1] - model.X[1] == 0)
     
     #3: Inventory for the periods between 2 and T - 1
     model.inventory_2_to_T_1 = Constraint(list(model.P)[1:-1], rule = inventory_between_two_and_t_1)
     
     #4: Inventory for t == T
-    model.inventory_end_period = Constraint(rule = model.Mars_len[T]*sum(model.demand[m,T] \
+    model.inventory_end_period = Constraint(rule = sum(model.demand[m,T] \
     for m in model.CH) - model.I[T-1] - model.X[T] == 0)
     
     #5: Setup constraints
     model.setup_constraints = Constraint(model.P, rule = setup_constraint_per_period)
     
+    return 
+
+"""
+  Add Business constraints
+"""
+def mnl_demand(model, channel, period):
+    
+    demand_nom = model.Mars_len[period]*exp(model.A[channel,period] + model.B[channel,period]*model.prices[channel,period])
+    demand_den = 1 + sum([exp(model.A[m,period] + model.B[m,period]*model.prices[m,period]) for m in model.CH])
+  
+    return (demand_nom/demand_den) == model.demand[channel,period]
+   
+
+def minimum_presence_mt(model, channel, period):
+    
+    return model.min_presence[channel]*sum(model.demand[(m,period)] for m in model.CH) \
+    <= model.demand[(channel,period)]
+
+def add_business_constraints(model):
+    
+    model.mnl_demand = Constraint(model.CHP, rule = mnl_demand)
+    model.presence_constraints = Constraint(model.CHP, rule = minimum_presence_mt)
+    return 
+    
+"""
+  Prices bouns
+"""
+
+def lb_prices(model,channel,period):
+    return model.prices[channel,period] >= model.LB[channel,period]
+
+def ub_prices(model,channel,period):
+    return model.prices[channel,period] <= model.UB[channel,period]
+
+
+def add_prices_bounds_constraints(model):
+    
+    model.prices_lbs = Constraint(model.CHP, rule = lb_prices)
+    model.prices_ubs = Constraint(model.CHP, rule = ub_prices)
+
+    #model.presence_constraints = Constraint(model.CHP, rule = minimum_presence_mt)
     return 
 
 """
@@ -190,7 +239,7 @@ def solver_pricing_single_product(T_, periods_, M_, channels_, set_,
                                       A_, B_, LB_, UB_, inventory_ubs_):
     
     #1: Initialize the instance data 
-    global ms, T, periods, M, channels, capacities, capacity_used \
+    global prices_model, T, periods, M, channels, capacities, capacity_used \
     ,production_costs, holding_costs, setup_costs, big_M, markets_length, min_presence, A, B, LB, UB, inventory_ubs
     
     T, periods, M, channels = T_, periods_, M_, channels_
@@ -210,10 +259,33 @@ def solver_pricing_single_product(T_, periods_, M_, channels_, set_,
     decision_variables_creation(prices_model)
     compute_objective_function(prices_model)
     add_logistics_constraints(prices_model)
-    """
-    add_business_constraints(ms)
-    add_theta_bounds_left_side(ms)
-    add_theta_bounds_right_side(ms)
-    """
-    prices_model.pprint()
-    return prices_model, -1
+    add_business_constraints(prices_model)
+    add_prices_bounds_constraints(prices_model)
+    #prices_model.pprint()
+    
+    print("here")
+    #4: Sovle the model
+    #try:
+        
+        #resolution_log = sys.stdout 
+        #log_file = f'../Results/Pricing_model/{demand_}/{set_}/{gen_protocole_}_P_{len(periods_)}_CH_{len(channels_)}_set_{set_number}/{demand_params_}/' 
+        #sys.stdout = open(f'{log_file}_Instance_{instance_number_}_{demand_}_{len(periods)}_{len(channels)}_log_file', "w")
+        
+    #start = time.process_time()
+    SolverFactory('mindtpy').solve(prices_model,
+                                    
+                                    tee = True
+                                    )
+    
+        #end = time.process_time()    
+        #sys.stdout.close()
+        #sys.stdout = resolution_log
+               
+    #except:
+    #    end = time.process_time()   
+    #    print("Instance infeasible !")
+    #    return prices_model, end - start
+    
+
+    return prices_model, -1 #end - start
+

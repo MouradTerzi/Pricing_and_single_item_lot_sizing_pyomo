@@ -7,7 +7,7 @@ from instances_reader import  *
 
 if __name__ == "__main__":
     
-    instances_path_items = [['MNL'],['Keller'],['2'],['2'],['DB_BC_BP']]
+    instances_path_items = [['MNL'],['Keller'],['6'],['2'],['DB_BC_BP']]
     set_ = "Small"
     set_number_ = '2'
     
@@ -29,12 +29,13 @@ if __name__ == "__main__":
             T, periods, M, channels, capacities, capacity_used, production_costs, holding_costs, setup_costs, big_M, \
             markets_length, min_presence, A, B, LB, UB, inventory_ubs, message = reader.read_instance_lingo_format(demand_, gen_protocole_,
                                     set_, set_number_, channels_,periods_, demand_params_, instance_number_ + 1)
-            
+            """
             reader.show_instance_data(T, periods, M, channels,
                           capacities, capacity_used, production_costs,
                           holding_costs, setup_costs, big_M, 
                           markets_length, min_presence, 
                           A, B, LB, UB)
+            """
 
             if message != "Instance not found":
                
