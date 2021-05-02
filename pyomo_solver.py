@@ -198,7 +198,7 @@ def add_logistics_constraints(model):
     model.production_limits = Constraint(model.P, rule = production_limit_constraint) 
     
     #2: Inventory for the first period
-    model.inventory_first_period = Constraint(rule = model.Mars_len[1]*sum(ms.theta_mt[m,1] \
+    model.inventory_first_period = Constraint(rule = model.Mars_len[1]*sum(model.theta_mt[m,1] \
     for m in model.CH) + model.I[1] - model.X[1] == 0)
     
     #3: Inventory for the periods between 2 and T - 1
