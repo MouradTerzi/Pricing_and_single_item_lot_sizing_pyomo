@@ -7,7 +7,7 @@ from instances_reader import  *
 
 if __name__ == "__main__":
     
-    instances_path_items = [['MNL'],['Keller'],['2048'],['2'],['DB_BC_BP']]
+    instances_path_items = [['MNL'],['Keller'],['16'],['2'],['DB_BC_BP']]
     set_ = "Large"
     set_number_ = '2'
     

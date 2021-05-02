@@ -280,9 +280,9 @@ def solver_market_share_single_product(T_, periods_, M_, channels_, set_,
     #4: Sovle the model
     try:
         
-        resolution_log = sys.stdout 
-        log_file = f'../Results/{demand_}/{set_}/{gen_protocole_}_P_{len(periods_)}_CH_{len(channels_)}_set_{set_number}/{demand_params_}/' 
-        sys.stdout = open(f'{log_file}_Instance_{instance_number_}_{demand_}_{len(periods)}_{len(channels)}_log_file', "w")
+        #resolution_log = sys.stdout 
+        #log_file = f'../Results/{demand_}/{set_}/{gen_protocole_}_P_{len(periods_)}_CH_{len(channels_)}_set_{set_number}/{demand_params_}/' 
+        #sys.stdout = open(f'{log_file}_Instance_{instance_number_}_{demand_}_{len(periods)}_{len(channels)}_log_file', "w")
         
         start = time.process_time()
         SolverFactory('mindtpy').solve(ms,
@@ -295,8 +295,8 @@ def solver_market_share_single_product(T_, periods_, M_, channels_, set_,
                                     )
 
         end = time.process_time()    
-        sys.stdout.close()
-        sys.stdout = resolution_log
+        #sys.stdout.close()
+        #sys.stdout = resolution_log
                
     except:
         end = time.process_time()   
