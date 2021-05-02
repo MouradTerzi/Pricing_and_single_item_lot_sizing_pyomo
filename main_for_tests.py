@@ -1,5 +1,5 @@
 import pyomo_solver
-from pyomo_solver import *
+from pyomo_solver_pricing_model import *
 import instances_reader 
 from instances_reader import  *
 
@@ -7,8 +7,8 @@ from instances_reader import  *
 
 if __name__ == "__main__":
     
-    instances_path_items = [['MNL'],['Keller'],['2048'],['2'],['DB_BC_BP']]
-    set_ = "Large"
+    instances_path_items = [['MNL'],['Keller'],['2'],['2'],['DB_BC_BP']]
+    set_ = "Small"
     set_number_ = '2'
     
     #1: Instantiate the reader object
@@ -29,12 +29,18 @@ if __name__ == "__main__":
             T, periods, M, channels, capacities, capacity_used, production_costs, holding_costs, setup_costs, big_M, \
             markets_length, min_presence, A, B, LB, UB, inventory_ubs, message = reader.read_instance_lingo_format(demand_, gen_protocole_,
                                     set_, set_number_, channels_,periods_, demand_params_, instance_number_ + 1)
+            
+            reader.show_instance_data(T, periods, M, channels,
+                          capacities, capacity_used, production_costs,
+                          holding_costs, setup_costs, big_M, 
+                          markets_length, min_presence, 
+                          A, B, LB, UB)
 
             if message != "Instance not found":
                
                 
                 #3.2: Solve the instance
-                ms, exec_time = solver_market_share_single_product(T, periods, M, channels, 
+                prices_model, exec_time = solver_pricing_single_product(T, periods, M, channels, 
                                                         set_, demand_, demand_params_, set_number_,
                                                         instance_number_ + 1, gen_protocole_, 
                                                         capacities, capacity_used, production_costs, 
@@ -42,7 +48,7 @@ if __name__ == "__main__":
                                                         big_M, markets_length, min_presence,
                                                         A, B, LB, UB, inventory_ubs)
                 
-            
+               
                 
             
             """
