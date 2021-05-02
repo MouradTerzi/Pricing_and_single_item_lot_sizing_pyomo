@@ -125,6 +125,8 @@ def decision_variables_creation(model):
     model.theta_o = Var(model.P, within = PositiveReals, bounds = (None,1), initialize = 0.25)
     model.X = Var(model.P, within = NonNegativeReals, initialize = 0)
     model.I = Var(list(model.P)[:-1], bounds= I_upper_bounds, within = NonNegativeReals, initialize = 0)
+    #model.I = Var(list(model.P)[:-1], within = NonNegativeReals, initialize = 0)
+    
     model.Y = Var(model.P, within = Binary)
     
     return 
@@ -248,7 +250,6 @@ def solver_market_share_single_product(T_, periods_, M_, channels_, set_,
                                       big_M_, markets_length_, min_presence_,
                                       A_, B_, LB_, UB_, inventory_ubs_):
     
-    #print("Inventory upper bounds are:",inventory_ubs_)
     #1: Initialize the instance data 
     global ms, T, periods, M, channels, capacities, capacity_used \
     ,production_costs, holding_costs, setup_costs, big_M, markets_length, min_presence, A, B, LB, UB, inventory_ubs
@@ -260,7 +261,7 @@ def solver_market_share_single_product(T_, periods_, M_, channels_, set_,
     markets_length, min_presence = markets_length_, min_presence_
     A, B, LB, UB, inventory_ubs = A_, B_, LB_, UB_, inventory_ubs_
     
-    start = time.time()
+    
     #2: Create the model
     ms = ConcreteModel()
 
@@ -278,21 +279,30 @@ def solver_market_share_single_product(T_, periods_, M_, channels_, set_,
 
     #4: Sovle the model
     try:
+        
         resolution_log = sys.stdout 
         log_file = f'../Results/{demand_}/{set_}/{gen_protocole_}_P_{len(periods_)}_CH_{len(channels_)}_set_{set_number}/{demand_params_}/' 
         sys.stdout = open(f'{log_file}_Instance_{instance_number_}_{demand_}_{len(periods)}_{len(channels)}_log_file', "w")
-    
-        SolverFactory('mindtpy').solve(ms, mip_solver='glpk', 
-                                        nlp_solver='ipopt', tee = True
-                                        )
         
+        start = time.process_time()
+        SolverFactory('mindtpy').solve(ms,
+                                    strategy = 'OA',
+                                    mip_solver='glpk', 
+                                    nlp_solver='ipopt', 
+                                    mip_solver_args={'timelimit': 900},
+                                    nlp_solver_args={'timelimit': 900},
+                                    tee = True
+                                    )
+
+        end = time.process_time()    
         sys.stdout.close()
         sys.stdout = resolution_log
                
     except:
+        end = time.process_time()   
         print("Instance infeasible !")
+        return ms, end - start
     
-    end = time.time()
     
     return ms, end - start
 

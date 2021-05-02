@@ -7,8 +7,8 @@ from instances_reader import  *
 
 if __name__ == "__main__":
     
-    instances_path_items = [['MNL'],['Keller'],['6'],['2'],['DB_BC_BP']]
-    set_ = "Small"
+    instances_path_items = [['MNL'],['Keller'],['2048'],['2'],['DB_BC_BP']]
+    set_ = "Large"
     set_number_ = '2'
     
     #1: Instantiate the reader object
@@ -45,12 +45,13 @@ if __name__ == "__main__":
             
                 
             
-            
+            """
             #3.3: Save the model     
             save_ms_model_and_results(ms, demand_, set_, set_number_, 
                                 demand_params_, gen_protocole_, periods_, 
                                 channels_, instance_number_ + 1)
-           
+            """
+        
                   
     
             
