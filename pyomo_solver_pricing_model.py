@@ -124,7 +124,7 @@ def I_upper_bounds(model, period):
 def decision_variables_creation(model):
     
     model.prices = Var(model.CHP, within = PositiveReals)
-    model.demand = Var(model.CHP, within = PositiveReals)
+    model.demand = Var(model.CHP, within = PositiveReals, bounds = (0.00001,None))
     model.X = Var(model.P, within = NonNegativeReals, initialize = 0)
     model.I = Var(list(model.P)[:-1], bounds= I_upper_bounds, within = NonNegativeReals, initialize = 0)
     model.Y = Var(model.P, within = Binary)
@@ -157,7 +157,7 @@ def production_limit_constraint(model,period):
 
 def inventory_between_two_and_t_1(model,period):
     
-    return model.Mars_len[period]*sum(model.demand[m,period] for m in model.CH) \
+    return sum(model.demand[m,period] for m in model.CH) \
     + model.I[period] - model.I[period -1] - model.X[period] == 0
 
 
@@ -230,7 +230,7 @@ def add_prices_bounds_constraints(model):
 """
     Solve the pricing model
 """
-def solver_pricing_single_product(T_, periods_, M_, channels_, set_, 
+def solver_prices_single_product(T_, periods_, M_, channels_, set_, 
                                       demand_, demand_params_, set_number,
                                       instance_number_, gen_protocole_, capacities_, 
                                       capacity_used_, production_costs_, 
@@ -261,31 +261,59 @@ def solver_pricing_single_product(T_, periods_, M_, channels_, set_,
     add_logistics_constraints(prices_model)
     add_business_constraints(prices_model)
     add_prices_bounds_constraints(prices_model)
-    #prices_model.pprint()
     
-    print("here")
     #4: Sovle the model
-    #try:
-        
-        #resolution_log = sys.stdout 
-        #log_file = f'../Results/Pricing_model/{demand_}/{set_}/{gen_protocole_}_P_{len(periods_)}_CH_{len(channels_)}_set_{set_number}/{demand_params_}/' 
-        #sys.stdout = open(f'{log_file}_Instance_{instance_number_}_{demand_}_{len(periods)}_{len(channels)}_log_file', "w")
-        
-    #start = time.process_time()
-    SolverFactory('mindtpy').solve(prices_model,
-                                    
+    try:
+    
+        resolution_log = sys.stdout 
+        log_file = f'../Results/Prices_model/{demand_}/{set_}/{gen_protocole_}_P_{len(periods_)}_CH_{len(channels_)}_set_{set_number}/{demand_params_}/' 
+        sys.stdout = open(f'{log_file}_Instance_{instance_number_}_{demand_}_{len(periods)}_{len(channels)}_prices_model_log_file', "w")
+        start_exec = time.time()
+        start_cpu = time.process_time()
+        SolverFactory('mindtpy').solve(prices_model, 
+                                    strategy = 'OA',
+                                    mip_solver='glpk', 
+                                    nlp_solver='ipopt', 
+                                    mip_solver_args={'timelimit': 3600},
+                                    nlp_solver_args={'timelimit': 3600},
                                     tee = True
                                     )
+        
+        end_cpu = time.process_time()                              
+        end_exec = time.time()
+        sys.stdout.close()
+        sys.stdout = resolution_log
+          
+    except:
+        end_exec = time.time()
+        end_cpu = time.process_time()
+        print("Instance infeasible !")
+        
+        return prices_model, end_cpu - start_cpu, end_exec - start_exec  #end - start
     
-        #end = time.process_time()    
-        #sys.stdout.close()
-        #sys.stdout = resolution_log
-               
-    #except:
-    #    end = time.process_time()   
-    #    print("Instance infeasible !")
-    #    return prices_model, end - start
+    return prices_model, end_cpu - start_cpu, end_exec - start_exec #end - start
+
+
+def save_prices_model_and_results(ms_model, demand, set_, set_number, 
+                                demand_params, gen_protocole, periods, 
+                                channels, instance_number):
     
+    path = f'../Results/Prices_model/{demand}/{set_}/{gen_protocole}_P_{periods}_CH_{channels}_set_{set_number}/{demand_params}/Instance_{instance_number}_{demand}_{periods}_{channels}'
 
-    return prices_model, -1 #end - start
+    try:
+        #1: Save the model
+        ms_model_file = open(f'{path}_prices_model',"w")
+        sys.stdout = ms_model_file
+        ms_model.pprint()
+        ms_model_file.close()
+    
+        #2: Save the resutls 
+        ms_model_results_file = open(f'{path}_prices_model_results',"w")
+        sys.stdout = ms_model_results_file
+        ms_model.display()
+        ms_model_results_file.close()
 
+    except TypeError:
+        print("Error when writing the model for the instance:") 
+
+    return 

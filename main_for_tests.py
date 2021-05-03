@@ -41,7 +41,7 @@ if __name__ == "__main__":
                
                 
                 #3.2: Solve the instance
-                prices_model, exec_time = solver_pricing_single_product(T, periods, M, channels, 
+                prices_model, exec_time = solver_prices_single_product(T, periods, M, channels, 
                                                         set_, demand_, demand_params_, set_number_,
                                                         instance_number_ + 1, gen_protocole_, 
                                                         capacities, capacity_used, production_costs, 
