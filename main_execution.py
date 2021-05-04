@@ -14,12 +14,13 @@ def create_sheet_file_for_periods_channels(wb, demand_,
     sheet.write(0,2,"Channels")
     sheet.write(0,4,"Instance number")
     sheet.write(0,6,"MS_Pyomo_Obj")
-    sheet.write(0,8,"MS_pyomo_Time (s)")
+    sheet.write(0,8,"MS_pyomo_cpu_Time(s)")
+    sheet.write(0,10,"MS_pyomo_total_exec_Time (s)")
 
     return sheet
 
 def save_results_in_excel_file(wb,model,periods_, channels_,
-                               instance_number_, exec_time):
+                               instance_number_, cpu_time, exec_time):
     
     sheet.write(instance_number_ + 1, 0, str(periods_))
     sheet.write(instance_number_ + 1, 2, str(channels_))
@@ -31,13 +32,14 @@ def save_results_in_excel_file(wb,model,periods_, channels_,
     except: 
         sheet.write(instance_number_ + 1, 6, "None")
 
-    sheet.write(instance_number_ + 1, 8, str(exec_time))
+    sheet.write(instance_number_ + 1, 8, str(cpu_time))
+    sheet.write(instance_number_ + 1, 10, str(exec_time))
     
     return 
 
 if __name__ == "__main__":
     
-    instances_path_items = [['MNL'],['Keller'],['2048'],['2'],['DB_BC_BP']]
+    instances_path_items = [['MNL'],['Keller'],['16','32','64','128','256','512','1024'],['2','3','4','5'],['DB_BC_BP']]
     set_ = "Large"
     set_number_ = '2'
     
@@ -52,7 +54,7 @@ if __name__ == "__main__":
         
         #1: Get the instances' path items
         demand_, gen_protocole_, periods_, channels_, demand_params_= element
-        wb_path = f'../Results/{demand_}/{set_}/{gen_protocole_}_P_{periods_}_CH_{channels_}_set_{set_number_}/{gen_protocole_}_P_{periods_}_CH_{channels_}_set_{set_number_}_pyomo_results.xls'
+        wb_path = f'../Results/Market_share_model/{demand_}/{set_}/{gen_protocole_}_P_{periods_}_CH_{channels_}_set_{set_number_}/{gen_protocole_}_P_{periods_}_CH_{channels_}_set_{set_number_}_pyomo_results.xls'
         
         #2: Create the results excel file
         sheet = create_sheet_file_for_periods_channels(wb, demand_, 
@@ -70,7 +72,7 @@ if __name__ == "__main__":
             if message != "Instance not found":
                 
                 #3.2: Solve the instance
-                ms, exec_time = solver_market_share_single_product(T, periods, M, channels, 
+                ms, cpu_time, exec_time = solver_market_share_single_product(T, periods, M, channels, 
                                                         set_, demand_, demand_params_, 
                                                         set_number_, instance_number_ + 1, gen_protocole_, 
                                                         capacities, capacity_used, production_costs, 
@@ -86,7 +88,7 @@ if __name__ == "__main__":
                 #3.4: Save the model 
                 save_results_in_excel_file(wb, ms, periods_, 
                                         channels_, instance_number_, 
-                                        exec_time)
+                                        cpu_time, exec_time)
                 
         wb.save(wb_path)   
     

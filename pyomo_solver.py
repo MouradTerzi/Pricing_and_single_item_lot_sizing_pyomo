@@ -280,31 +280,35 @@ def solver_market_share_single_product(T_, periods_, M_, channels_, set_,
     #4: Sovle the model
     try:
         
-        #resolution_log = sys.stdout 
-        #log_file = f'../Results/{demand_}/{set_}/{gen_protocole_}_P_{len(periods_)}_CH_{len(channels_)}_set_{set_number}/{demand_params_}/' 
-        #sys.stdout = open(f'{log_file}_Instance_{instance_number_}_{demand_}_{len(periods)}_{len(channels)}_log_file', "w")
+        resolution_log = sys.stdout 
+        log_file = f'../Results/Market_share_model/{demand_}/{set_}/{gen_protocole_}_P_{len(periods_)}_CH_{len(channels_)}_set_{set_number}/{demand_params_}/' 
+        sys.stdout = open(f'{log_file}_Instance_{instance_number_}_{demand_}_{len(periods)}_{len(channels)}_log_file', "w")
         
-        start = time.process_time()
+        start_exec = time.time()
+        start_cpu = time.process_time()
         SolverFactory('mindtpy').solve(ms,
                                     strategy = 'OA',
                                     mip_solver='glpk', 
                                     nlp_solver='ipopt', 
-                                    mip_solver_args={'timelimit': 900},
-                                    nlp_solver_args={'timelimit': 900},
+                                    mip_solver_args={'timelimit': 3600},
+                                    nlp_solver_args={'timelimit': 3600},
                                     tee = True
                                     )
 
-        end = time.process_time()    
-        #sys.stdout.close()
-        #sys.stdout = resolution_log
+        end_cpu = time.process_time()    
+        end_exec = time.time()
+        sys.stdout.close()
+        sys.stdout = resolution_log
                
     except:
-        end = time.process_time()   
+        end_cpu = time.process_time()    
+        end_exec = time.time()  
         print("Instance infeasible !")
-        return ms, end - start
+
+        return ms, end_cpu - start_cpu, end_exec - start_exec
     
     
-    return ms, end - start
+    return ms, end_cpu - start_cpu, end_exec - start_exec
 
 """
   Save the model and the results
@@ -314,7 +318,7 @@ def save_ms_model_and_results(ms_model, demand, set_, set_number,
                                 demand_params, gen_protocole, periods, 
                                 channels, instance_number):
     
-    path = f'../Results/{demand}/{set_}/{gen_protocole}_P_{periods}_CH_{channels}_set_{set_number}/{demand_params}/Instance_{instance_number}_{demand}_{periods}_{channels}'
+    path = f'../Results/Market_share_model/{demand}/{set_}/{gen_protocole}_P_{periods}_CH_{channels}_set_{set_number}/{demand_params}/Instance_{instance_number}_{demand}_{periods}_{channels}'
 
     try:
         #1: Save the model
