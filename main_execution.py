@@ -38,7 +38,7 @@ def save_results_in_excel_file(wb, model, periods_, channels_,
 
 if __name__ == "__main__":
     
-    instances_path_items = [['MNL'],['Keller'],['1024','2048','4096'],['2','3','4','5'],['DB_BC_BP']]
+    instances_path_items = [['MNL'],['Keller'],['2048','4096'],['2','3','4','5'],['DB_BC_BP']]
     set_ = "Large"
     set_number_ = '2'
     
