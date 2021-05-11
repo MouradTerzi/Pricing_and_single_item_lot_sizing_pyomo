@@ -125,7 +125,8 @@ def decision_variables_creation(model):
     
     model.prices = Var(model.CHP, within = PositiveReals)
     model.demand = Var(model.CHP, within = PositiveReals, bounds = (0.00001,None))
-    model.X = Var(model.P, within = NonNegativeReals, initialize = 0)
+    #model.X = Var(model.P, within = NonNegativeReals, initialize = 0)
+    model.X = Var(model.P, within = NonNegativeIntegers, initialize = 0)
     model.I = Var(list(model.P)[:-1], bounds= I_upper_bounds, within = NonNegativeReals, initialize = 0)
     model.Y = Var(model.P, within = Binary)
     
@@ -265,9 +266,9 @@ def solver_prices_single_product(T_, periods_, M_, channels_, set_,
     #4: Sovle the model
     try:
     
-        resolution_log = sys.stdout 
-        log_file = f'../Results/Prices_model/{demand_}/{set_}/{gen_protocole_}_P_{len(periods_)}_CH_{len(channels_)}_set_{set_number}/{demand_params_}/' 
-        sys.stdout = open(f'{log_file}_Instance_{instance_number_}_{demand_}_{len(periods)}_{len(channels)}_prices_model_log_file', "w")
+        #resolution_log = sys.stdout 
+        #log_file = f'../Results/Prices_model/{demand_}/{set_}/{gen_protocole_}_P_{len(periods_)}_CH_{len(channels_)}_set_{set_number}/{demand_params_}/' 
+        #sys.stdout = open(f'{log_file}_Instance_{instance_number_}_{demand_}_{len(periods)}_{len(channels)}_prices_model_log_file', "w")
         start_exec = time.time()
         start_cpu = time.process_time()
         SolverFactory('mindtpy').solve(prices_model, 
@@ -276,13 +277,14 @@ def solver_prices_single_product(T_, periods_, M_, channels_, set_,
                                     nlp_solver='ipopt', 
                                     mip_solver_args={'timelimit': 3600},
                                     nlp_solver_args={'timelimit': 3600},
-                                    tee = True
+                                    tee = True,
+                                    time_limit = 3600
                                     )
         
         end_cpu = time.process_time()                              
         end_exec = time.time()
-        sys.stdout.close()
-        sys.stdout = resolution_log
+        #sys.stdout.close()
+        #sys.stdout = resolution_log
           
     except:
         end_exec = time.time()

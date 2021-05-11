@@ -150,9 +150,9 @@ class READER:
                               instance_number):
 
         try:
-            path = f'../Instances/{demand}/{set_}/{gen_protocole}_P_{periods}_CH_{channels}_set_{set_number}/{demand_params}/'
-            instance_path = f'{path}Instance_{str(instance_number)}_{demand}_{periods}_{channels}.LDT'
-            f = open(instance_path,"r")
+            #path = f'../Instances/{demand}/{set_}/{gen_protocole}_P_{periods}_CH_{channels}_set_{set_number}/{demand_params}/'
+            #instance_path = f'{path}Instance_{str(instance_number)}_{demand}_{periods}_{channels}.LDT'
+            f = open('Instance_1_MNL_6_2_cap_700_setup_900.LDT',"r")
         
         except FileNotFoundError:
             print("Wrong file or file path")

@@ -1,4 +1,4 @@
-import pyomo_solver
+import pyomo_solver_pricing_model
 from pyomo_solver_pricing_model import *
 import instances_reader 
 from instances_reader import  *
@@ -29,19 +29,19 @@ if __name__ == "__main__":
             T, periods, M, channels, capacities, capacity_used, production_costs, holding_costs, setup_costs, big_M, \
             markets_length, min_presence, A, B, LB, UB, inventory_ubs, message = reader.read_instance_lingo_format(demand_, gen_protocole_,
                                     set_, set_number_, channels_,periods_, demand_params_, instance_number_ + 1)
-            """
+            
             reader.show_instance_data(T, periods, M, channels,
                           capacities, capacity_used, production_costs,
                           holding_costs, setup_costs, big_M, 
                           markets_length, min_presence, 
                           A, B, LB, UB)
-            """
+            
 
             if message != "Instance not found":
                
                 
                 #3.2: Solve the instance
-                prices_model, exec_time = solver_prices_single_product(T, periods, M, channels, 
+                prices_model, cpu_time, exec_time = solver_prices_single_product(T, periods, M, channels, 
                                                         set_, demand_, demand_params_, set_number_,
                                                         instance_number_ + 1, gen_protocole_, 
                                                         capacities, capacity_used, production_costs, 
@@ -51,7 +51,8 @@ if __name__ == "__main__":
                 
                
                 
-            
+            print("cpu time:",cpu_time)
+            print("exec time:",exec_time)
             """
             #3.3: Save the model     
             save_ms_model_and_results(ms, demand_, set_, set_number_, 
