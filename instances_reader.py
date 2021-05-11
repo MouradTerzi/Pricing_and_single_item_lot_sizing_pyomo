@@ -143,15 +143,30 @@ class READER:
         
         return markets_length, min_presence, LB, UB, A, B 
     
-    
+   
+    def get_instance_path(self, demand, set_number, 
+                          gen_protocole, periods, channels, 
+                          capacity, setup, instance_number):
+        
+        if set_number == '2':
+            path = f'../Instances/{demand}/set_{set_number}/{gen_protocole}_P_{periods}_CH_{channels}/'
+            return f'{path}Instance_{str(instance_number)}_{demand}_{periods}_{channels}.LDT'
+        
+        elif set_number == '3':
+            path = f'../Instances/{demand}/set_{set_number}/{gen_protocole}_P_{periods}_CH_{channels}/cap_{capacity}_setup_{setup}/'
+            return f'{path}Instance_{str(instance_number)}_{demand}_{periods}_{channels}_cap_{capacity}_setup_{setup}.LDT'
+        
+
     def read_instance_lingo_format(self, demand, gen_protocole,
-                              set_,set_number, channels,
-                              periods, demand_params, 
-                              instance_number):
+                              set_number, channels, periods, 
+                              capacity, setup, instance_number):
 
         try:
-            path = f'../Instances/{demand}/{set_}/{gen_protocole}_P_{periods}_CH_{channels}_set_{set_number}/{demand_params}/'
-            instance_path = f'{path}Instance_{str(instance_number)}_{demand}_{periods}_{channels}.LDT'
+            instance_path = self.get_instance_path(demand, set_number, 
+                                                   gen_protocole, periods, 
+                                                   channels, capacity, setup, 
+                                                   instance_number)
+                                                   
             f = open(instance_path,"r")
         
         except FileNotFoundError:
