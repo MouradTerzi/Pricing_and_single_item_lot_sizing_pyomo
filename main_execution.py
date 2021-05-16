@@ -91,16 +91,13 @@ if __name__ == "__main__":
             
             if message != "Instance not found":
                 #3.2: Solve the instance
-                ms, cpu_time, exec_time = solver_market_share_single_product(T, production, periods, M, channels, 
+                ms, exec_time = solver_market_share_single_product(T, production, periods, M, channels, 
                                                                             demand, capacity, setup, set_number, 
                                                                             instance_number + 1, gen_protocole, 
                                                                             capacities, capacity_used, production_costs, 
                                                                             holding_costs, setup_costs, big_M, markets_length, 
                                                                             min_presence, A, B, LB, UB, inventory_ubs
                                                                             )
-                print("exec:",exec_time)
-                print("cpu:",cpu_time)
-
                 
                 #3.3: Save the model     
                 save_ms_model_and_results(ms, production, demand, set_number, 
@@ -114,5 +111,5 @@ if __name__ == "__main__":
                                         cpu_time, exec_time)
    
         wb.save(wb_path)   
-        
+
             

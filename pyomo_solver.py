@@ -296,38 +296,38 @@ def solver_market_share_single_product(T_, production, periods_, M_, channels_,
     #4: Sovle the model
     #try:
 
-    #resolution_log = sys.stdout 
-    #log_file = get_log_files_path(production, demand, set_number,
-    #                            gen_protocole_, periods_, channels_,
-    #                            capacity, setup, instance_number)
-    
-    
+        #resolution_log = sys.stdout 
+        #log_file = get_log_files_path(production, demand, set_number,
+        #                            gen_protocole_, periods_, channels_,
+        #                            capacity, setup, instance_number)
+        
+        
     #sys.stdout = open(f'{log_file}', "w")
     solver = SolverFactory('mindtpy')
     start_exec = time.time()
-    start_cpu = time.process_time()
+    #start_cpu = time.process_time()
     restuls =solver.solve(ms,
-                        strategy = 'OA',
-                        mip_solver='glpk', 
-                        nlp_solver='ipopt', 
-                        mip_solver_args={'timelimit': 3600},
-                        nlp_solver_args={'timelimit': 3600},
-                        tee = True,
-                        time_limit = 3600
-                        )
-                            
-    end_cpu = time.process_time()    
+                    strategy = 'OA',
+                    mip_solver='glpk', 
+                    nlp_solver='ipopt', 
+                    mip_solver_args={'timelimit': 3600},
+                    nlp_solver_args={'timelimit': 3600},
+                    tee = True,
+                    time_limit = 7200
+                    )
+                        
+    #end_cpu = time.process_time()    
     end_exec = time.time()
         #sys.stdout.close()
         #sys.stdout = resolution_log
     
     #except:
         
-        #end_cpu = time.process_time()    
-        #end_exec = time.time()  
-        #print("Instance infeasible !")
+    #    end_cpu = time.process_time()    
+    #    end_exec = time.time()  
+    #    print("Instance infeasible !")
        
-        #return ms, end_cpu - start_cpu, end_exec - start_exec
+    #    return ms, end_cpu - start_cpu, end_exec - start_exec
         
     
     return ms, end_cpu - start_cpu, end_exec - start_exec

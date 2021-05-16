@@ -6,7 +6,7 @@ from xlwt import Workbook
 
 
 if __name__ == "__main__":
-    instances_path_items = [['MNL'],['Keller'],['26'],['2']]
+    instances_path_items = [['MNL'],['Keller'],['6'],['2']]
     set_number = '3'
     capacity = "700"
     setup = "900"
