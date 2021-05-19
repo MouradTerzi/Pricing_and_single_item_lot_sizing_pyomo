@@ -35,6 +35,7 @@ def create_instance_sets(model):
     
     return
 
+
 """
     Logistics Params initialization
 """
@@ -98,7 +99,7 @@ def initialize_ubs(model, channel, period):
 
 
 def market_data_initialization(model):
-    
+
     model.min_presence = Param(channels, initialize = initialize_minimum_markets_presence, within = PositiveReals)
     model.Mars_len = Param(model.P, initialize = initialize_markets_length, within = PositiveReals)
     model.A = Param(model.CHP, initialize = initialize_demand_params_a, within = PositiveReals)
@@ -111,43 +112,41 @@ def market_data_initialization(model):
 """
    Variables creation
 """    
+def prices_bounds(model,channel,period):
 
-def X_bounds(model, period):
-    return 0, capacities[period - 1]/capacity_used[period - 1]
+    return (model.LB[channel,period], model.UB[channel,period])
 
 
 def I_upper_bounds(model, period):
     return (0,inventory_ubs[period - 1])
 
+
 def decision_variables_creation(model):
     
+<<<<<<< HEAD:pyomo_solver.py
     model.theta_mt = Var(model.CHP, within = PositiveReals, bounds = (None,1))
     model.theta_o = Var(model.P, within = PositiveReals, bounds = (None,1), initialize = 0.25)
     model.X = Var(model.P, within = NonNegativeIntegers, initialize = 0)
     #model.X = Var(model.P, within = NonNegativeReals, initialize = 0)
+=======
+    model.prices = Var(model.CHP, within = PositiveReals)
+    model.demand = Var(model.CHP, within = PositiveReals, bounds = (0.00001,None))
+    #model.X = Var(model.P, within = NonNegativeReals, initialize = 0)
+    model.X = Var(model.P, within = NonNegativeIntegers, initialize = 0)
+>>>>>>> pricing_model:pyomo_solver_pricing_model.py
     model.I = Var(list(model.P)[:-1], bounds= I_upper_bounds, within = NonNegativeReals, initialize = 0)
-    #model.I = Var(list(model.P)[:-1], within = NonNegativeReals, initialize = 0)
-    
     model.Y = Var(model.P, within = Binary)
     
     return 
 
 """
-  Objective function
+    Objective function
 """
-
-def compute_profit_mt(model,channel, period):
-    
-    pi_mt = (markets_length[period - 1]*model.theta_mt[(channel,period)])/(model.B[(channel, period)])
-    g_mt =  log(model.theta_mt[(channel,period)]/model.theta_o[period]) - model.A[(channel,period)]
-    
-    return pi_mt*g_mt 
-
 
 def compute_objective_function(model):
     
-    model.profit = Expression(expr = sum(compute_profit_mt(model,channel, period) \
-    for (channel, period) in ms.CHP))
+
+    model.profit = Expression(expr = summation(model.prices, model.demand))
     
     model.total_costs = Expression(expr = summation(model.Prod_cost,model.X) \
     + summation(model.Hold_cost,model.I) + summation(model.Setup_cost,model.Y))
@@ -155,25 +154,6 @@ def compute_objective_function(model):
     model.obj = Objective(expr = model.profit.expr - model.total_costs.expr, sense = maximize)
 
     return 
-
-"""
-  Add Business constraints
-"""
-
-def minimum_presence_mt(model, channel, period):
-    
-    return ms.min_presence[channel]*sum(model.theta_mt[(m,period)] for m in ms.CH) \
-    <= model.theta_mt[(channel,period)]
-
-
-def sum_ms_equal_to_one(model, period):
-    return sum([model.theta_mt[(m,period)] for m in ms.CH]) + ms.theta_o[period] == 1
-
-
-def add_business_constraints(model):
-    
-    model.presence_constraints = Constraint(model.CHP, rule = minimum_presence_mt)
-    model.ms_equal_to_one_constraints = Constraint(model.P, rule = sum_ms_equal_to_one)
 
 """
   Add Logistic constraints
@@ -185,7 +165,7 @@ def production_limit_constraint(model,period):
 
 def inventory_between_two_and_t_1(model,period):
     
-    return model.Mars_len[period]*sum(model.theta_mt[m,period] for m in model.CH) \
+    return sum(model.demand[m,period] for m in model.CH) \
     + model.I[period] - model.I[period -1] - model.X[period] == 0
 
 
@@ -199,15 +179,19 @@ def add_logistics_constraints(model):
     model.production_limits = Constraint(model.P, rule = production_limit_constraint) 
     
     #2: Inventory for the first period
+<<<<<<< HEAD:pyomo_solver.py
     model.inventory_first_period = Constraint(rule = model.Mars_len[1]*sum(model.theta_mt[m,1] \
+=======
+    model.inventory_first_period = Constraint(rule = sum(model.demand[m,1] \
+>>>>>>> pricing_model:pyomo_solver_pricing_model.py
     for m in model.CH) + model.I[1] - model.X[1] == 0)
     
     #3: Inventory for the periods between 2 and T - 1
     model.inventory_2_to_T_1 = Constraint(list(model.P)[1:-1], rule = inventory_between_two_and_t_1)
     
     #4: Inventory for t == T
-    model.inventory_end_period = Constraint(rule = model.Mars_len[T]*sum(model.theta_mt[m,T] \
-    for m in model.CH) - model.I[T-1] - ms.X[T] == 0)
+    model.inventory_end_period = Constraint(rule = sum(model.demand[m,T] \
+    for m in model.CH) - model.I[T-1] - model.X[T] == 0)
     
     #5: Setup constraints
     model.setup_constraints = Constraint(model.P, rule = setup_constraint_per_period)
@@ -215,34 +199,65 @@ def add_logistics_constraints(model):
     return 
 
 """
-   Add theta or prices bounds constraints 
+  Add Business constraints
+"""
+def mnl_demand(model, channel, period):
+    
+    demand_nom = model.Mars_len[period]*exp(model.A[channel,period] + model.B[channel,period]*model.prices[channel,period])
+    demand_den = 1 + sum([exp(model.A[m,period] + model.B[m,period]*model.prices[m,period]) for m in model.CH])
+  
+    return (demand_nom/demand_den) == model.demand[channel,period]
+   
+
+def minimum_presence_mt(model, channel, period):
+    
+    return model.min_presence[channel]*sum(model.demand[(m,period)] for m in model.CH) \
+    <= model.demand[(channel,period)]
+
+def add_business_constraints(model):
+    
+    model.mnl_demand = Constraint(model.CHP, rule = mnl_demand)
+    model.presence_constraints = Constraint(model.CHP, rule = minimum_presence_mt)
+    return 
+    
+"""
+  Prices bouns
 """
 
-def theta_bound_left_mt(model,channel,period):
+def lb_prices(model,channel,period):
+    return model.prices[channel,period] >= model.LB[channel,period]
+
+def ub_prices(model,channel,period):
+    return model.prices[channel,period] <= model.UB[channel,period]
+
+
+def add_prices_bounds_constraints(model):
     
-    f_p_mt_ub = exp(model.A[channel,period] + model.B[channel,period]*model.UB[channel,period])
-    return f_p_mt_ub*(1 - sum(model.theta_mt[m,period] for m in model.CH)) <= model.theta_mt[channel,period]
+    model.prices_lbs = Constraint(model.CHP, rule = lb_prices)
+    model.prices_ubs = Constraint(model.CHP, rule = ub_prices)
 
+    #model.presence_constraints = Constraint(model.CHP, rule = minimum_presence_mt)
+    return 
 
-def theta_bound_right_mt(model,channel,period):
+def get_log_files_path(production, demand, set_number,
+                       gen_protocole, periods, channels,
+                       capacity, setup, instance_number):
     
-    f_p_mt_lb = exp(model.A[channel,period] + model.B[channel,period]*model.LB[channel,period])
-    return f_p_mt_lb*(1 - sum(model.theta_mt[m,period] for m in model.CH)) >= model.theta_mt[channel,period]
-
-
-def add_theta_bounds_left_side(model):
+    if set_number == '2':
+        log_partial_path = f'../Results/Prices_model/{production}_production/{demand}/set_{set_number}/'
+        log_file_name = f'Instance_{instance_number}_{demand}_{len(periods)}_{len(channels)}_log_file'
+        return f'{log_partial_path}{gen_protocole}_P_{len(periods)}_CH_{len(channels)}/{log_file_name}' 
     
-    model.theta_bounds_left_side = Constraint(model.CHP, rule = theta_bound_left_mt) 
-
-
-def add_theta_bounds_right_side(model):
-    
-    model.theta_bounds_right_side = Constraint(model.CHP, rule = theta_bound_right_mt) 
+    elif set_number == '3':
+        log_partial_path = f'../Results/Prices_model/{production}_production/{demand}/set_{set_number}/'
+        log_file_name = f'Instance_{instance_number}_{demand}_{len(periods)}_{len(channels)}_cap_{capacity}_setup_{setup}_log_file'
+        return f'{log_partial_path}{gen_protocole}_P_{len(periods)}_CH_{len(channels)}/cap_{capacity}_setup_{setup}/{log_file_name}' 
 
 """
-   Market share for single product model resolution
+    Solve the pricing model
 """
 
+<<<<<<< HEAD:pyomo_solver.py
 def get_log_files_path(production, demand, set_number,
                        gen_protocole, periods, channels_,
                        capacity, setup, instance_number):
@@ -265,9 +280,18 @@ def solver_market_share_single_product(T_, production, periods_, M_, channels_,
                                       holding_costs_, setup_costs_, big_M_, markets_length_, 
                                       min_presence_, A_, B_, LB_, UB_, inventory_ubs_
                                       ):
+=======
+def solver_prices_single_product(T_, production, periods_, M_, channels_, 
+                                demand, capacity, setup, set_number, 
+                                instance_number, gen_protocole_, 
+                                capacities_, capacity_used_, production_costs_, 
+                                holding_costs_, setup_costs_, big_M_, markets_length_, 
+                                min_presence_, A_, B_, LB_, UB_, inventory_ubs_):
+>>>>>>> pricing_model:pyomo_solver_pricing_model.py
     
     #1: Initialize the instance data 
-    global ms, T, periods, M, channels, capacities, capacity_used \
+    #1: Initialize the instance data 
+    global prices_model, T, periods, M, channels, capacities, capacity_used \
     ,production_costs, holding_costs, setup_costs, big_M, markets_length, min_presence, A, B, LB, UB, inventory_ubs
     
     T, periods, M, channels = T_, periods_, M_, channels_
@@ -278,9 +302,10 @@ def solver_market_share_single_product(T_, production, periods_, M_, channels_,
     A, B, LB, UB, inventory_ubs = A_, B_, LB_, UB_, inventory_ubs_
     
     #2: Create the model
-    ms = ConcreteModel()
+    prices_model = ConcreteModel()
 
     #3: Add sets, parameters and variavles
+<<<<<<< HEAD:pyomo_solver.py
     create_instance_sets(ms)
     logistic_params_initialization(ms)
     market_data_initialization(ms)
@@ -327,16 +352,60 @@ def solver_market_share_single_product(T_, production, periods_, M_, channels_,
     #   return ms, end_cpu - start_cpu, end_exec - start_exec
         
     return ms, end_cpu - start_cpu, end_exec - start_exec
+=======
+    create_instance_sets(prices_model)
+    logistic_params_initialization(prices_model)
+    market_data_initialization(prices_model)
+    decision_variables_creation(prices_model)
+    compute_objective_function(prices_model)
+    add_logistics_constraints(prices_model)
+    add_business_constraints(prices_model)
+    add_prices_bounds_constraints(prices_model)
+    
+    #4: Sovle the model
+    try:
+    
+        resolution_log = sys.stdout 
+        log_file = get_log_files_path(production, demand, set_number,
+                                    gen_protocole_, periods_, channels_,
+                                    capacity, setup, instance_number)
+        
+        sys.stdout = open(f'{log_file}', "w")
+        start_exec = time.time()
+        start_cpu = time.process_time()
+        SolverFactory('mindtpy').solve(
+                                    prices_model, 
+                                    strategy = 'OA',
+                                    mip_solver='glpk', 
+                                    nlp_solver='ipopt', 
+                                    mip_solver_args={'timelimit': 3600},
+                                    nlp_solver_args={'timelimit': 3600},
+                                    tee = True,
+                                    time_limit = 7200
+                                    )
+        
+        end_cpu = time.process_time()                              
+        end_exec = time.time()
+        sys.stdout.close()
+        sys.stdout = resolution_log
+          
+    except:
+        end_exec = time.time()
+        end_cpu = time.process_time()
+        print("Instance infeasible !")
+        
+        return prices_model, end_cpu - start_cpu, end_exec - start_exec  
+    
+    return prices_model, end_cpu - start_cpu, end_exec - start_exec 
+>>>>>>> pricing_model:pyomo_solver_pricing_model.py
 
-"""
-  Save the model and the results
-"""
 
 def get_model_and_results_path(production, demand, set_number, 
                                gen_protocole, periods, channels, 
                                capacity, setup, instance_number):
 
     if set_number == '2':
+<<<<<<< HEAD:pyomo_solver.py
         results_path = f'../Results/Market_share_model/{production}_production/{demand}/set_{set_number}/'
         return f'{results_path}{gen_protocole}_P_{periods}_CH_{channels}/Instances_{instance_number}_{demand}_{periods}_{channels}'
     
@@ -355,24 +424,40 @@ def save_ms_model_and_results(ms_model, production, demand,
                                        gen_protocole, periods, channels, 
                                        capacity, setup, instance_number)
     
+=======
+        results_path = f'../Results/Prices_model/{production}_production/{demand}/set_{set_number}/'
+        return f'{results_path}{gen_protocole}_P_{periods}_CH_{channels}/Instances_{instance_number}_{demand}_{periods}_{channels}'
+    
+    elif set_number == '3':
+        results_path = f'../Results/Prices_model/{production}_production/{demand}/set_{set_number}/'
+        return f'{results_path}{gen_protocole}_P_{periods}_CH_{channels}/cap_{capacity}_setup_{setup}/Instances_{instance_number}_{demand}_{periods}_{channels}_{capacity}_{setup}'
+
+
+def save_prices_model_and_results(pr_model, production, demand, 
+                                set_number, gen_protocole, periods, 
+                                channels, capacity, setup,
+                                instance_number):
+    
+    path = get_model_and_results_path(production, demand, set_number, 
+                                       gen_protocole, periods, channels, 
+                                       capacity, setup, instance_number)
+    
+    #print(f'{path}')
+>>>>>>> pricing_model:pyomo_solver_pricing_model.py
     try:
         #1: Save the model
-        ms_model_file = open(f'{path}_model',"w")
-        sys.stdout = ms_model_file
-        ms_model.pprint()
-        ms_model_file.close()
+        pr_model_file = open(f'{path}_prices_model',"w")
+        sys.stdout = pr_model_file
+        pr_model.pprint()
+        pr_model_file.close()
     
         #2: Save the resutls 
-        ms_model_results_file = open(f'{path}_results',"w")
-        sys.stdout = ms_model_results_file
-        ms_model.display()
-        ms_model_results_file.close()
+        pr_model_results_file = open(f'{path}_prices_model_results',"w")
+        sys.stdout = pr_model_results_file
+        pr_model.display()
+        pr_model_results_file.close()
 
     except TypeError:
         print("Error when writing the model for the instance:") 
 
     return 
-
-    
-
-    

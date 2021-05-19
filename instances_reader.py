@@ -166,7 +166,11 @@ class READER:
                                                    gen_protocole, periods, 
                                                    channels, capacity, setup, 
                                                    instance_number)
+<<<<<<< HEAD
                                                    
+=======
+            print(instance_path)                                       
+>>>>>>> pricing_model
             f = open(instance_path,"r")
         
         except FileNotFoundError:
@@ -256,7 +260,3 @@ class READER:
             #2: Compute the values of theta_mt_b and theta_mt_o 
             theta_mt_b = (1 - min_presence[0])*(1 - theta_o_t)
             theta_mt_o = min_presence[0]*(1 - theta_o_t)
-
-
-
-        
