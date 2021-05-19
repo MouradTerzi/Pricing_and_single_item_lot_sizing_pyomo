@@ -343,9 +343,8 @@ def get_model_and_results_path(production, demand, set_number,
     elif set_number == '3':
         results_path = f'../Results/Market_share_model/{production}_production/{demand}/set_{set_number}/'
         return f'{results_path}{gen_protocole}_P_{periods}_CH_{channels}/cap_{capacity}_setup_{setup}/Instances_{instance_number}_{demand}_{periods}_{channels}_{capacity}_{setup}'
-        
-
-
+    
+    
 def save_ms_model_and_results(ms_model, production, demand, 
                               set_number, gen_protocole, periods, 
                               channels, capacity, setup,
