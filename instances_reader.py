@@ -143,16 +143,31 @@ class READER:
         
         return markets_length, min_presence, LB, UB, A, B 
     
-    
+   
+    def get_instance_path(self, demand, set_number, 
+                          gen_protocole, periods, channels, 
+                          capacity, setup, instance_number):
+        
+        if set_number == '2':
+            path = f'../Instances/{demand}/set_{set_number}/{gen_protocole}_P_{periods}_CH_{channels}/'
+            return f'{path}Instance_{str(instance_number)}_{demand}_{periods}_{channels}.LDT'
+        
+        elif set_number == '3':
+            path = f'../Instances/{demand}/set_{set_number}/{gen_protocole}_P_{periods}_CH_{channels}/cap_{capacity}_setup_{setup}/'
+            return f'{path}Instance_{str(instance_number)}_{demand}_{periods}_{channels}_cap_{capacity}_setup_{setup}.LDT'
+        
+
     def read_instance_lingo_format(self, demand, gen_protocole,
-                              set_,set_number, channels,
-                              periods, demand_params, 
-                              instance_number):
+                              set_number, channels, periods, 
+                              capacity, setup, instance_number):
 
         try:
-            #path = f'../Instances/{demand}/{set_}/{gen_protocole}_P_{periods}_CH_{channels}_set_{set_number}/{demand_params}/'
-            #instance_path = f'{path}Instance_{str(instance_number)}_{demand}_{periods}_{channels}.LDT'
-            f = open('Instance_1_MNL_6_2_cap_700_setup_900.LDT',"r")
+            instance_path = self.get_instance_path(demand, set_number, 
+                                                   gen_protocole, periods, 
+                                                   channels, capacity, setup, 
+                                                   instance_number)
+            print(instance_path)                                       
+            f = open(instance_path,"r")
         
         except FileNotFoundError:
             print("Wrong file or file path")
@@ -241,7 +256,3 @@ class READER:
             #2: Compute the values of theta_mt_b and theta_mt_o 
             theta_mt_b = (1 - min_presence[0])*(1 - theta_o_t)
             theta_mt_o = min_presence[0]*(1 - theta_o_t)
-
-
-
-        

@@ -228,17 +228,32 @@ def add_prices_bounds_constraints(model):
     #model.presence_constraints = Constraint(model.CHP, rule = minimum_presence_mt)
     return 
 
+def get_log_files_path(production, demand, set_number,
+                       gen_protocole, periods, channels,
+                       capacity, setup, instance_number):
+    
+    if set_number == '2':
+        log_partial_path = f'../Results/Prices_model/{production}_production/{demand}/set_{set_number}/'
+        log_file_name = f'Instance_{instance_number}_{demand}_{len(periods)}_{len(channels)}_log_file'
+        return f'{log_partial_path}{gen_protocole}_P_{len(periods)}_CH_{len(channels)}/{log_file_name}' 
+    
+    elif set_number == '3':
+        log_partial_path = f'../Results/Prices_model/{production}_production/{demand}/set_{set_number}/'
+        log_file_name = f'Instance_{instance_number}_{demand}_{len(periods)}_{len(channels)}_cap_{capacity}_setup_{setup}_log_file'
+        return f'{log_partial_path}{gen_protocole}_P_{len(periods)}_CH_{len(channels)}/cap_{capacity}_setup_{setup}/{log_file_name}' 
+
 """
     Solve the pricing model
 """
-def solver_prices_single_product(T_, periods_, M_, channels_, set_, 
-                                      demand_, demand_params_, set_number,
-                                      instance_number_, gen_protocole_, capacities_, 
-                                      capacity_used_, production_costs_, 
-                                      holding_costs_, setup_costs_, 
-                                      big_M_, markets_length_, min_presence_,
-                                      A_, B_, LB_, UB_, inventory_ubs_):
+
+def solver_prices_single_product(T_, production, periods_, M_, channels_, 
+                                demand, capacity, setup, set_number, 
+                                instance_number, gen_protocole_, 
+                                capacities_, capacity_used_, production_costs_, 
+                                holding_costs_, setup_costs_, big_M_, markets_length_, 
+                                min_presence_, A_, B_, LB_, UB_, inventory_ubs_):
     
+    #1: Initialize the instance data 
     #1: Initialize the instance data 
     global prices_model, T, periods, M, channels, capacities, capacity_used \
     ,production_costs, holding_costs, setup_costs, big_M, markets_length, min_presence, A, B, LB, UB, inventory_ubs
@@ -266,54 +281,75 @@ def solver_prices_single_product(T_, periods_, M_, channels_, set_,
     #4: Sovle the model
     try:
     
-        #resolution_log = sys.stdout 
-        #log_file = f'../Results/Prices_model/{demand_}/{set_}/{gen_protocole_}_P_{len(periods_)}_CH_{len(channels_)}_set_{set_number}/{demand_params_}/' 
-        #sys.stdout = open(f'{log_file}_Instance_{instance_number_}_{demand_}_{len(periods)}_{len(channels)}_prices_model_log_file', "w")
+        resolution_log = sys.stdout 
+        log_file = get_log_files_path(production, demand, set_number,
+                                    gen_protocole_, periods_, channels_,
+                                    capacity, setup, instance_number)
+        
+        sys.stdout = open(f'{log_file}', "w")
         start_exec = time.time()
         start_cpu = time.process_time()
-        SolverFactory('mindtpy').solve(prices_model, 
+        SolverFactory('mindtpy').solve(
+                                    prices_model, 
                                     strategy = 'OA',
                                     mip_solver='glpk', 
                                     nlp_solver='ipopt', 
                                     mip_solver_args={'timelimit': 3600},
                                     nlp_solver_args={'timelimit': 3600},
                                     tee = True,
-                                    time_limit = 3600
+                                    time_limit = 7200
                                     )
         
         end_cpu = time.process_time()                              
         end_exec = time.time()
-        #sys.stdout.close()
-        #sys.stdout = resolution_log
+        sys.stdout.close()
+        sys.stdout = resolution_log
           
     except:
         end_exec = time.time()
         end_cpu = time.process_time()
         print("Instance infeasible !")
         
-        return prices_model, end_cpu - start_cpu, end_exec - start_exec  #end - start
+        return prices_model, end_cpu - start_cpu, end_exec - start_exec  
     
-    return prices_model, end_cpu - start_cpu, end_exec - start_exec #end - start
+    return prices_model, end_cpu - start_cpu, end_exec - start_exec 
 
 
-def save_prices_model_and_results(ms_model, demand, set_, set_number, 
-                                demand_params, gen_protocole, periods, 
-                                channels, instance_number):
+def get_model_and_results_path(production, demand, set_number, 
+                               gen_protocole, periods, channels, 
+                               capacity, setup, instance_number):
+
+    if set_number == '2':
+        results_path = f'../Results/Prices_model/{production}_production/{demand}/set_{set_number}/'
+        return f'{results_path}{gen_protocole}_P_{periods}_CH_{channels}/Instances_{instance_number}_{demand}_{periods}_{channels}'
     
-    path = f'../Results/Prices_model/{demand}/{set_}/{gen_protocole}_P_{periods}_CH_{channels}_set_{set_number}/{demand_params}/Instance_{instance_number}_{demand}_{periods}_{channels}'
+    elif set_number == '3':
+        results_path = f'../Results/Prices_model/{production}_production/{demand}/set_{set_number}/'
+        return f'{results_path}{gen_protocole}_P_{periods}_CH_{channels}/cap_{capacity}_setup_{setup}/Instances_{instance_number}_{demand}_{periods}_{channels}_{capacity}_{setup}'
 
+
+def save_prices_model_and_results(pr_model, production, demand, 
+                                set_number, gen_protocole, periods, 
+                                channels, capacity, setup,
+                                instance_number):
+    
+    path = get_model_and_results_path(production, demand, set_number, 
+                                       gen_protocole, periods, channels, 
+                                       capacity, setup, instance_number)
+    
+    #print(f'{path}')
     try:
         #1: Save the model
-        ms_model_file = open(f'{path}_prices_model',"w")
-        sys.stdout = ms_model_file
-        ms_model.pprint()
-        ms_model_file.close()
+        pr_model_file = open(f'{path}_prices_model',"w")
+        sys.stdout = pr_model_file
+        pr_model.pprint()
+        pr_model_file.close()
     
         #2: Save the resutls 
-        ms_model_results_file = open(f'{path}_prices_model_results',"w")
-        sys.stdout = ms_model_results_file
-        ms_model.display()
-        ms_model_results_file.close()
+        pr_model_results_file = open(f'{path}_prices_model_results',"w")
+        sys.stdout = pr_model_results_file
+        pr_model.display()
+        pr_model_results_file.close()
 
     except TypeError:
         print("Error when writing the model for the instance:") 
