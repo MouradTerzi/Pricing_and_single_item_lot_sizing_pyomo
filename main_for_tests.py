@@ -20,7 +20,7 @@ if __name__ == "__main__":
         demand, gen_protocole, periods_, channels_ = element
         
         #3: Call the solver for each instance
-        for instance_number in range(1):    
+        for instance_number in range(16,17):    
            
             #3.1: Read the instance
             T, periods, M, channels, capacities, capacity_used, production_costs, holding_costs, setup_costs, big_M, \
@@ -28,6 +28,13 @@ if __name__ == "__main__":
                                                                                  set_number, channels_,periods_, 
                                                                                  capacity, setup, instance_number + 1
                                                                                  )
+           
+            reader.show_instance_data(T, periods, M, channels,
+                          capacities, capacity_used, production_costs,
+                          holding_costs, setup_costs, big_M, 
+                          markets_length, min_presence, 
+                          A, B, LB, UB)
+            
             if message != "Instance not found":
             
                 #3.2: Solve the instance
@@ -37,5 +44,16 @@ if __name__ == "__main__":
                                                                             capacities, capacity_used, production_costs, 
                                                                             holding_costs, setup_costs, big_M, markets_length, 
                                                                             min_presence, A, B, LB, UB, inventory_ubs)
+                print(f'Total execution time :{exec_time}')
+                print(f'Total profit over the whole horizon is:')
+                ms.obj.display()
+
+                #3.3: Save the model    
+                """ 
+                save_ms_model_and_results(ms, production, demand, set_number, 
+                                        gen_protocole, periods_, 
+                                        channels_, capacity, setup,
+                                        instance_number + 1)
+                """
                 
-              
+            

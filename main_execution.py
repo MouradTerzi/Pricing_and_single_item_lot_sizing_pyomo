@@ -15,7 +15,7 @@ def get_excel_results_path(production, demand, set_number,
         return f'{wb_partial_path}{gen_protocole}_P_{periods}_CH_{channels_}_pyomo_results.xls'
     
     elif set_number == '3':
-        return f'{wb_partial_path}cap_{capacity}_setup_{setup}/{gen_protocole}_P_{periods}_CH_{channels_}_pyomo_results.xls'
+        return f'{wb_partial_path}cap_{capacity}_setup_{setup}/{gen_protocole}_P_{periods}_CH_{channels_}_pyomo_results_real_X.xls'
 
 
 def create_sheet_file_for_periods_channels(wb, demand, 
@@ -53,7 +53,7 @@ def save_results_in_excel_file(wb,model,periods_, channels_,
 
 if __name__ == "__main__":
     
-    instances_path_items = [['MNL'],['Keller'],['6'],['2']]
+    instances_path_items = [['MNL'],['Keller'],['6'],['4','5']]
     set_number = '3'
     capacity = "700"
     setup = "900"
@@ -80,7 +80,7 @@ if __name__ == "__main__":
                                                       periods_, channels_)
     
         #3: Call the solver for each instance
-        for instance_number in range(1):    
+        for instance_number in range(10):    
            
             #3.1: Read the instance
             T, periods, M, channels, capacities, capacity_used, production_costs, holding_costs, setup_costs, big_M, \
@@ -91,20 +91,21 @@ if __name__ == "__main__":
             
             if message != "Instance not found":
                 #3.2: Solve the instance
-                ms, exec_time = solver_market_share_single_product(T, production, periods, M, channels, 
+                ms, cpu_time, exec_time = solver_market_share_single_product(T, production, periods, M, channels, 
                                                                             demand, capacity, setup, set_number, 
                                                                             instance_number + 1, gen_protocole, 
                                                                             capacities, capacity_used, production_costs, 
                                                                             holding_costs, setup_costs, big_M, markets_length, 
                                                                             min_presence, A, B, LB, UB, inventory_ubs
                                                                             )
-                
+                """
                 #3.3: Save the model     
                 save_ms_model_and_results(ms, production, demand, set_number, 
                                         gen_protocole, periods_, 
                                         channels_, capacity, setup,
                                         instance_number + 1)
-                
+                """
+
                 #3.4: Save the model 
                 save_results_in_excel_file(wb, ms, periods_, 
                                         channels_, instance_number, 
