@@ -4,12 +4,11 @@ import shutil
 import random
 import numpy as np 
 
-class READER:
+class Reader:
 
     """
-    Read prices' lower and upper bounds from instances with lingo format (Markets data)
+    # Read prices' lower and upper bounds from instances with lingo format (Markets data)
     """
-
     def read_lower_bounds(self, instance, 
                          lbs_index, channels, periods):
         
@@ -28,8 +27,7 @@ class READER:
             channel_ind += 1
             lbs_index += 1  
         return LB
-
-    
+ 
     def read_upper_bounds(self, instance, 
                          ubs_index, channels, periods):
         
@@ -50,7 +48,7 @@ class READER:
         return UB
 
     """
-    Read demand parameters from instances with lingo format (Markets data)
+    # Read demand parameters from instances with lingo format (Markets data)
     """
 
     def read_demand_parameter_A(self, instance, 
@@ -72,7 +70,6 @@ class READER:
         
         return A
 
-
     def read_demand_parameter_B(self, instance, 
                                 in_b_index, channels, periods):
         
@@ -92,7 +89,7 @@ class READER:
         return B
 
     """
-    Read logistics data from instances with lingo format
+    # Read logistics data from instances with lingo format
     """
 
     def read_logistics_data_lingo_format(self,instance):
@@ -122,7 +119,6 @@ class READER:
 
         big_M = np.sum(np.array(capacities)/np.array(capacity_used))
         return capacity_used, capacities, production_costs, holding_costs, setup_costs, inventory_ubs, big_M
-
     
     def read_market_data_lingo_format(self, instance,
                                      channels, periods, M):
@@ -142,35 +138,23 @@ class READER:
         B = self.read_demand_parameter_B(instance, 26 + 3*M + 3, channels, periods)
         
         return markets_length, min_presence, LB, UB, A, B 
-    
-   
-    def get_instance_path(self, demand, set_number, 
-                          gen_protocole, periods, channels, 
-                          capacity, setup, instance_number):
+     
+    def get_instance_path(self, demand, 
+                          periods, channels, 
+                          capacity, setup, 
+                          instance_number):
         
-        if set_number == '2':
-            path = f'../Instances/{demand}/set_{set_number}/{gen_protocole}_P_{periods}_CH_{channels}/'
-            return f'{path}Instance_{str(instance_number)}_{demand}_{periods}_{channels}.LDT'
-        
-        elif set_number == '3':
-            path = f'../Instances/{demand}/set_{set_number}/{gen_protocole}_P_{periods}_CH_{channels}/cap_{capacity}_setup_{setup}/'
+            path = f'../../Instances/{demand}/P_{periods}_CH_{channels}_cap_{capacity}_setup_{setup}/'
             return f'{path}Instance_{str(instance_number)}_{demand}_{periods}_{channels}_cap_{capacity}_setup_{setup}.LDT'
+            
+    def read_instance_lingo_format(self, demand,channels, periods, 
+                                   capacity, setup, instance_number):
         
-
-    def read_instance_lingo_format(self, demand, gen_protocole,
-                              set_number, channels, periods, 
-                              capacity, setup, instance_number):
-
         try:
-            instance_path = self.get_instance_path(demand, set_number, 
-                                                   gen_protocole, periods, 
-                                                   channels, capacity, setup, 
-                                                   instance_number)
-<<<<<<< HEAD
-                                                   
-=======
-            print(instance_path)                                       
->>>>>>> pricing_model
+            instance_path = self.get_instance_path(demand, periods, 
+                                                   channels, capacity, 
+                                                   setup, instance_number)
+            print(instance_path)                                        
             f = open(instance_path,"r")
         
         except FileNotFoundError:
@@ -181,7 +165,7 @@ class READER:
         instance = [instance[i] for i in range(len(instance)) if instance[i] != ' ']
         
         """
-        Read the general data lingo format
+        # Read the general data lingo format
         """
         
         T = int(instance[2].split(' ')[0])
@@ -192,14 +176,14 @@ class READER:
         
         
         """
-        Read the logistics data lingo format
+        # Read the logistics data lingo format
         """  
         
         capacity_used, capacities, production_costs, \
         holding_costs, setup_costs, inventory_ubs, big_M = self.read_logistics_data_lingo_format(instance)
         
         """
-        Read markets data lingo format
+        # Read markets data lingo format
         """
 
         markets_length, min_presence, \
@@ -208,7 +192,6 @@ class READER:
         return T, periods, M, channels, capacities, capacity_used, production_costs, holding_costs, setup_costs, big_M, \
         markets_length, min_presence, A, B, LB, UB, inventory_ubs," "
     
-
     def show_instance_data(self, T, periods, M, channels,
                           capacities, capacity_used, production_costs,
                           holding_costs, setup_costs, big_M, 
@@ -243,8 +226,7 @@ class READER:
         [print("UB[",channel,period,"] = ",UB[channel,period]) for channel in channels for period in periods]
         
         return 
-    
-    
+      
     def initialize_theta_mt(self, min_presence):
 
         min_presence = [float(min_presence[i]) for i in range(len(min_presence))]
@@ -260,3 +242,7 @@ class READER:
             #2: Compute the values of theta_mt_b and theta_mt_o 
             theta_mt_b = (1 - min_presence[0])*(1 - theta_o_t)
             theta_mt_o = min_presence[0]*(1 - theta_o_t)
+
+
+
+        
