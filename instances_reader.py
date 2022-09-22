@@ -4,6 +4,8 @@ import shutil
 import random
 import numpy as np 
 
+from instance import *
+
 class Reader:
 
     """
@@ -121,7 +123,7 @@ class Reader:
         return capacity_used, capacities, production_costs, holding_costs, setup_costs, inventory_ubs, big_M
     
     def read_market_data_lingo_format(self, instance,
-                                     channels, periods, M):
+                                  channels,periods,M):
         
         markets_length = instance[22].split(' ')
         markets_length = [float(markets_length[i]) for i in \
@@ -139,23 +141,22 @@ class Reader:
         
         return markets_length, min_presence, LB, UB, A, B 
      
-    def get_instance_path(self, demand, 
-                          periods, channels, 
-                          capacity, setup, 
-                          instance_number):
+    def get_instance_path(self,demand,M,T, 
+                        capacity, setup, 
+                        instanceNumber):
         
-            path = f'../../Instances/{demand}/P_{periods}_CH_{channels}_cap_{capacity}_setup_{setup}/'
-            return f'{path}Instance_{str(instance_number)}_{demand}_{periods}_{channels}_cap_{capacity}_setup_{setup}.LDT'
+            path = f'../../Instances/{demand}/P_{T}_CH_{M}_cap_{capacity}_setup_{setup}/'
+            return f'{path}Instance_{str(instanceNumber+1)}_{demand}_{T}_{M}_cap_{capacity}_setup_{setup}.LDT'
             
-    def read_instance_lingo_format(self, demand,channels, periods, 
-                                   capacity, setup, instance_number):
+    def read_instance_lingo_format(self,demand,M,T,capacity,
+                                   setup,instanceNumber):
         
         try:
-            instance_path = self.get_instance_path(demand, periods, 
-                                                   channels, capacity, 
-                                                   setup, instance_number)
-            print(instance_path)                                        
-            f = open(instance_path,"r")
+            instancePath = self.get_instance_path(demand,M,T,capacity, 
+                                                setup,instanceNumber)   
+
+            print(instancePath)                      
+            f = open(instancePath,"r")
         
         except FileNotFoundError:
             print("Wrong file or file path")
@@ -174,74 +175,58 @@ class Reader:
         channels = [channels[i] for i in range(len(channels)) if channels[i] != '' and channels[i] != '~']
         M = len(channels) 
         
-        
         """
         # Read the logistics data lingo format
         """  
         
-        capacity_used, capacities, production_costs, \
-        holding_costs, setup_costs, inventory_ubs, big_M = self.read_logistics_data_lingo_format(instance)
+        capacityUsed,capacities,productionCosts, \
+        holdingCosts,setupCosts,inventoryUbs,bigM = self.read_logistics_data_lingo_format(instance)
         
         """
         # Read markets data lingo format
         """
 
-        markets_length, min_presence, \
-        LB, UB, A, B = self.read_market_data_lingo_format(instance, channels, periods, M)
+        marketsLength,minPresence,LB,UB,A,B = self.read_market_data_lingo_format(instance,channels,periods,M)
+
+        instance = InstancePricingLotSizingMultiChannel(T,periods,M,channels,capacities,
+                                                        capacityUsed,productionCosts,
+                                                        holdingCosts,setupCosts,bigM,
+                                                        marketsLength,minPresence,A,B,LB,
+                                                        UB,inventoryUbs)
         
-        return T, periods, M, channels, capacities, capacity_used, production_costs, holding_costs, setup_costs, big_M, \
-        markets_length, min_presence, A, B, LB, UB, inventory_ubs," "
+        return instance
     
-    def show_instance_data(self, T, periods, M, channels,
-                          capacities, capacity_used, production_costs,
-                          holding_costs, setup_costs, big_M, 
-                          markets_length, min_presence, 
-                          A, B, LB, UB):
+    def show_instance_data(self,instance):
 
         print(f'General data:')
-        print(f'Periods number: {T}')
-        print(f'Periods:{periods}')
+        print(f'Periods number: {instance.T}')
+        print(f'Periods:{instance.periods}')
         
         print(f'Logistics data:')
-        print(f'Production capacities per period: {capacities}')
-        print(f'Capacity used per period:{capacity_used}')
-        print(f'Production costs: {production_costs}')
-        print(f'Holding costs: {holding_costs}')
-        print(f'Setup costs: {setup_costs}')
-        print(f'Big M: {big_M}\n\n')
+        print(f'Production capacities per period: {instance.capacities}')
+        print(f'Capacity used per period:{instance.capacity_used}')
+        print(f'Production costs: {instance.production_costs}')
+        print(f'Holding costs: {instance.holding_costs}')
+        print(f'Setup costs: {instance.setup_costs}')
+        print(f'Big M: {instance.big_M}\n\n')
         
         print(f'Markets data:')
         
-        print(f'Channels number: {M}')
-        print(f'Channels list: {channels}')
-        print(f'Market lengths: {markets_length}')
-        print(f'Minimum presence: {min_presence}')
+        print(f'Channels number: {instance.M}')
+        print(f'Channels list: {instance.channels}')
+        print(f'Market lengths: {instance.markets_length}')
+        print(f'Minimum presence: {instance.min_presence}')
         print(f'Demand parameters A:')
-        [print("A[",channel,period,"] = ",A[channel,period]) for channel in channels for period in periods]
+        [print("A[",channel,period,"] = ",instance.A[channel,period]) for channel in instance.channels for period in instance.periods]
         print("\nDemand parameters B:")
-        [print("B[",channel,period,"] = ",B[channel,period]) for channel in channels for period in periods]
+        [print("B[",channel,period,"] = ",instance.B[channel,period]) for channel in instance.channels for period in instance.periods]
         print("\nPrices lower bounds:")
-        [print("LB[",channel,period,"] = ",LB[channel,period]) for channel in channels for period in periods]
+        [print("LB[",channel,period,"] = ",instance.LB[channel,period]) for channel in instance.channels for period in instance.periods]
         print("\nPrices upper bounds")
-        [print("UB[",channel,period,"] = ",UB[channel,period]) for channel in channels for period in periods]
+        [print("UB[",channel,period,"] = ",instance.UB[channel,period]) for channel in instance.channels for period in instance.periods]
         
         return 
       
-    def initialize_theta_mt(self, min_presence):
-
-        min_presence = [float(min_presence[i]) for i in range(len(min_presence))]
-
-        if sum(min_presence) > 1:
-           print(f'Instance is infeasible because sum of the minimum presence {min_presence} are greater than one')
-        
-        else: 
-            #1: Generate uniformaly from [0.1, 0.4] the value of no-purchase option
-            theta_o_t = round(random.uniform(0.1, 0.4),2)
-            print(f'The value of the no-purchase option is {theta_o_t}')
-
-            #2: Compute the values of theta_mt_b and theta_mt_o 
-            theta_mt_b = (1 - min_presence[0])*(1 - theta_o_t)
-            theta_mt_o = min_presence[0]*(1 - theta_o_t)
 
 
 
